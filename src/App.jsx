@@ -2,21 +2,47 @@ import { useState, useRef, useEffect } from 'react'
 
 const API = 'https://www.suzip.kr'
 
-const HINTS = ['반포자이', '마포래미안푸르지오', '잠실엘스', '은마아파트', '망원동', '성수동']
+// 동네 중심 힌트 (부동산 느낌 최소화)
+const HINTS = ['망원동', '성수동', '마포구', '잠실동', '반포동', '분당구']
 
 const CAT_ICON = { 교통: '🚇', 학군: '📚', 분위기: '🏘️', 이슈: '📣' }
 
-export default function App() {
-  const [query, setQuery]           = useState('')
-  const [suggestions, setSuggestions] = useState([])
-  const [showSugg, setShowSugg]     = useState(false)
-  const [result, setResult]         = useState(null)   // { aptNm, location, vibe, stories }
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState(null)
+// AI 고지 — 앱인토스 5조 의무
+function AiNotice({ onConfirm }) {
+  return (
+    <div className="notice-overlay">
+      <div className="notice-sheet">
+        <div className="notice-icon">🤖</div>
+        <div className="notice-title">AI가 요약한 동네 이야기예요</div>
+        <p className="notice-body">
+          이 서비스는 인터넷(블로그·카페·뉴스)에 올라온 글을 AI가 자동으로 수집·요약해요.
+          실제 사실과 다를 수 있으니 참고용으로만 활용해주세요.
+        </p>
+        <button className="notice-btn" onClick={onConfirm}>확인했어요</button>
+      </div>
+    </div>
+  )
+}
 
-  const inputRef   = useRef(null)
+export default function App() {
+  const [query, setQuery]             = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [showSugg, setShowSugg]       = useState(false)
+  const [result, setResult]           = useState(null)
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState(null)
+  const [showNotice, setShowNotice]   = useState(() => {
+    try { return !localStorage.getItem('soozip-ai-noticed') } catch { return true }
+  })
+
+  const inputRef    = useRef(null)
   const debounceRef = useRef(null)
-  const abortRef   = useRef(null)
+  const abortRef    = useRef(null)
+
+  function handleNoticeConfirm() {
+    try { localStorage.setItem('soozip-ai-noticed', '1') } catch {}
+    setShowNotice(false)
+  }
 
   // 자동완성
   useEffect(() => {
@@ -44,7 +70,6 @@ export default function App() {
     setResult(null)
 
     try {
-      // 검색으로 단지 정보 확인
       const searchRes = await fetch(`${API}/api/search?q=${encodeURIComponent(aptName)}`)
         .then(r => r.json()).catch(() => [])
       const apt = Array.isArray(searchRes) && searchRes.length > 0 ? searchRes[0] : null
@@ -52,7 +77,6 @@ export default function App() {
       const displayName = apt?.kaptName || aptName
       const location = apt?.addr?.split(' ').slice(1, 4).join(' ') || ''
 
-      // vibe + stories 병렬 호출
       const [vibeRes, storiesRes] = await Promise.all([
         fetch(`${API}/api/vibe?aptName=${encodeURIComponent(displayName)}&location=${encodeURIComponent(dong)}`)
           .then(r => r.json()).catch(() => null),
@@ -67,7 +91,7 @@ export default function App() {
         stories: Array.isArray(storiesRes) ? storiesRes.slice(0, 5) : [],
       })
     } catch {
-      setError('정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
+      setError('이야기를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
     } finally {
       setLoading(false)
     }
@@ -84,6 +108,7 @@ export default function App() {
   if (result) {
     return (
       <div className="screen">
+        {showNotice && <AiNotice onConfirm={handleNoticeConfirm} />}
         <header className="result-header">
           <button className="back-btn" onClick={handleBack}>←</button>
           <div className="result-header-info">
@@ -93,9 +118,11 @@ export default function App() {
         </header>
 
         <div className="result-body">
-          {/* 수근수근 */}
           <div className="vibe-section">
-            <div className="section-badge">수근수근</div>
+            <div className="ai-badge-row">
+              <span className="section-badge">수군수군</span>
+              <span className="ai-label">AI 자동 요약</span>
+            </div>
 
             {result.vibe?.summary && (
               <div className="vibe-summary">{result.vibe.summary}</div>
@@ -116,14 +143,13 @@ export default function App() {
             ))}
 
             {!result.vibe?.categories?.some(c => c.lines.length > 0) && (
-              <div className="empty-text">아직 소문이 없네요</div>
+              <div className="empty-text">아직 이야기가 없네요</div>
             )}
           </div>
 
-          {/* 블로그 후기 */}
           {result.stories.length > 0 && (
             <div className="stories-section">
-              <div className="section-label">블로그 · 카페 후기</div>
+              <div className="section-label">블로그 · 카페 원문 보기</div>
               {result.stories.map((s, i) => (
                 <a key={i} className="story-item" href={s.link} target="_blank" rel="noopener noreferrer">
                   <div className="story-title">{s.title}</div>
@@ -134,7 +160,10 @@ export default function App() {
             </div>
           )}
 
-          <p className="disclaimer">인터넷 정보를 AI가 요약한 내용이에요. 직접 임장해보는 게 제일 정확해요.</p>
+          <p className="disclaimer">
+            위 내용은 AI가 인터넷 글을 자동 수집·요약한 결과예요.{'\n'}
+            실제 사실과 다를 수 있으며 투자·거래 참고 자료로 활용할 수 없어요.
+          </p>
         </div>
       </div>
     )
@@ -143,9 +172,11 @@ export default function App() {
   // 홈 화면
   return (
     <div className="screen screen-home">
+      {showNotice && <AiNotice onConfirm={handleNoticeConfirm} />}
+
       <div className="home-hero">
-        <div className="home-logo">수근수근</div>
-        <div className="home-sub">마음에 둔 아파트,<br />동네 소문 모아드려요</div>
+        <div className="home-logo">수군수군 우리동네</div>
+        <div className="home-sub">우리 동네, 사람들은<br />뭐라고 수군거릴까?</div>
       </div>
 
       <div className="search-wrap">
@@ -154,7 +185,7 @@ export default function App() {
             ref={inputRef}
             className="search-input"
             type="text"
-            placeholder="아파트 이름으로 검색해봐요"
+            placeholder="동네나 아파트 이름으로 검색해봐요"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { setShowSugg(false); handleSearch(query) } }}
@@ -180,12 +211,16 @@ export default function App() {
       </div>
 
       {error && <div className="error-msg">{error}</div>}
-      {loading && <div className="loading-msg">소문 수집 중이에요...</div>}
+      {loading && <div className="loading-msg">동네 이야기 모으는 중이에요...</div>}
 
       <div className="hints">
         {HINTS.map(h => (
           <button key={h} className="hint-chip" onClick={() => { setQuery(h); handleSearch(h) }}>{h}</button>
         ))}
+      </div>
+
+      <div className="home-ai-notice">
+        🤖 인터넷 정보를 AI가 자동 요약해드려요
       </div>
     </div>
   )
