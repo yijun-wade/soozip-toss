@@ -169,6 +169,7 @@ export default function App() {
             placeholder="동네나 아파트 이름으로 검색해봐요"
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onInput={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { setShowSugg(false); handleSearch(query) } }}
             autoComplete="off"
           />
