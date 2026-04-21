@@ -26,7 +26,6 @@ function AiNotice({ onConfirm }) {
 export default function App() {
   const [query, setQuery]             = useState('')
   const [suggestions, setSuggestions] = useState([])
-  const [showSugg, setShowSugg]       = useState(false)
   const [result, setResult]           = useState(null)
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState(null)
@@ -45,15 +44,12 @@ export default function App() {
   // 아파트/동네 자동완성
   useEffect(() => {
     clearTimeout(debounceRef.current)
-    if (query.trim().length < 1) { setSuggestions([]); setShowSugg(false); return }
+    if (query.trim().length < 1) { setSuggestions([]); return }
     const q = query
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`).then(r => r.json())
-        if (Array.isArray(res) && res.length > 0) {
-          setSuggestions(res.slice(0, 6))
-          setShowSugg(true)
-        }
+        setSuggestions(Array.isArray(res) ? res.slice(0, 6) : [])
       } catch {}
     }, 300)
   }, [query])
@@ -61,7 +57,6 @@ export default function App() {
   async function handleSearch(name, dong = '') {
     const q = name.trim()
     if (!q) return
-    setShowSugg(false)
     setSuggestions([])
     setLoading(true)
     setError(null)
@@ -168,16 +163,16 @@ export default function App() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onInput={e => setQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { setShowSugg(false); handleSearch(query) } }}
+            onKeyDown={e => { if (e.key === 'Enter') { setSuggestions([]); handleSearch(query) } }}
             autoComplete="off"
           />
           {query && (
-            <button className="search-clear" onClick={() => { setQuery(''); setSuggestions([]); setShowSugg(false) }}>×</button>
+            <button className="search-clear" onClick={() => { setQuery(''); setSuggestions([]) }}>×</button>
           )}
         </div>
         <button className="search-btn" onClick={() => handleSearch(query)}>검색</button>
 
-        {showSugg && suggestions.length > 0 && (
+        {suggestions.length > 0 && (
           <ul className="sugg-list">
             {suggestions.map(apt => {
               const dong = apt.addr?.split(' ').find(p => p.endsWith('동') || p.endsWith('읍') || p.endsWith('면')) || ''
