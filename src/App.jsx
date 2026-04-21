@@ -36,7 +36,6 @@ export default function App() {
 
   const inputRef    = useRef(null)
   const debounceRef = useRef(null)
-  const abortRef    = useRef(null)
 
   function handleNoticeConfirm() {
     try { localStorage.setItem('soozip-ai-noticed', '1') } catch {}
@@ -47,17 +46,16 @@ export default function App() {
   useEffect(() => {
     clearTimeout(debounceRef.current)
     if (query.trim().length < 1) { setSuggestions([]); setShowSugg(false); return }
+    const q = query
     debounceRef.current = setTimeout(async () => {
-      abortRef.current?.abort()
-      const ctrl = new AbortController()
-      abortRef.current = ctrl
-      const res = await fetch(`${API}/api/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
-        .then(r => r.json()).catch(e => e.name === 'AbortError' ? null : [])
-      if (res !== null) {
-        setSuggestions(Array.isArray(res) ? res.slice(0, 6) : [])
-        setShowSugg(true)
-      }
-    }, 200)
+      try {
+        const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`).then(r => r.json())
+        if (Array.isArray(res) && res.length > 0) {
+          setSuggestions(res.slice(0, 6))
+          setShowSugg(true)
+        }
+      } catch {}
+    }, 300)
   }, [query])
 
   async function handleSearch(name, dong = '') {
