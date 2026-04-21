@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 
 const API = 'https://www.suzip.kr'
 
-// 동네 중심 힌트 (부동산 느낌 최소화)
-const HINTS = ['망원동', '성수동', '마포구', '잠실동', '반포동', '분당구']
+const HINTS = ['망원동', '성수동', '연남동', '잠실동', '한남동', '분당구']
 
 const CAT_ICON = { 교통: '🚇', 학군: '📚', 분위기: '🏘️', 이슈: '📣' }
 
@@ -44,7 +43,7 @@ export default function App() {
     setShowNotice(false)
   }
 
-  // 자동완성
+  // 아파트/동네 자동완성
   useEffect(() => {
     clearTimeout(debounceRef.current)
     if (query.trim().length < 1) { setSuggestions([]); setShowSugg(false); return }
@@ -61,8 +60,9 @@ export default function App() {
     }, 200)
   }, [query])
 
-  async function handleSearch(aptName, locationHint = '') {
-    if (!aptName.trim()) return
+  async function handleSearch(name, dong = '') {
+    const q = name.trim()
+    if (!q) return
     setShowSugg(false)
     setSuggestions([])
     setLoading(true)
@@ -70,26 +70,20 @@ export default function App() {
     setResult(null)
 
     try {
-      const searchRes = await fetch(`${API}/api/search?q=${encodeURIComponent(aptName)}`)
-        .then(r => r.json()).catch(() => [])
-      const apt = Array.isArray(searchRes) && searchRes.length > 0 ? searchRes[0] : null
-      const dong = apt?.addr?.split(' ').find(p => p.endsWith('동') || p.endsWith('읍')) || locationHint || ''
-      const displayName = apt?.kaptName || aptName
-      const location = apt?.addr?.split(' ').slice(1, 4).join(' ') || ''
+      // dong이 없으면 검색 API로 추출 시도
+      let neighborhood = dong
+      if (!neighborhood) {
+        const searchRes = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`)
+          .then(r => r.json()).catch(() => [])
+        const apt = Array.isArray(searchRes) && searchRes.length > 0 ? searchRes[0] : null
+        neighborhood = apt?.addr?.split(' ').find(p => p.endsWith('동') || p.endsWith('읍') || p.endsWith('면')) || q
+      }
 
-      const [vibeRes, storiesRes] = await Promise.all([
-        fetch(`${API}/api/vibe?aptName=${encodeURIComponent(displayName)}&location=${encodeURIComponent(dong)}`)
-          .then(r => r.json()).catch(() => null),
-        fetch(`${API}/api/stories?aptName=${encodeURIComponent(displayName)}&location=${encodeURIComponent(dong)}`)
-          .then(r => r.json()).catch(() => []),
-      ])
+      const vibeRes = await fetch(
+        `${API}/api/vibe?aptName=${encodeURIComponent(q)}&location=${encodeURIComponent(neighborhood)}`
+      ).then(r => r.json()).catch(() => null)
 
-      setResult({
-        aptNm: displayName,
-        location,
-        vibe: vibeRes,
-        stories: Array.isArray(storiesRes) ? storiesRes.slice(0, 5) : [],
-      })
+      setResult({ neighborhood, vibe: vibeRes })
     } catch {
       setError('이야기를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
     } finally {
@@ -112,8 +106,8 @@ export default function App() {
         <header className="result-header">
           <button className="back-btn" onClick={handleBack}>←</button>
           <div className="result-header-info">
-            <div className="result-apt-name">{result.aptNm}</div>
-            {result.location && <div className="result-apt-loc">{result.location}</div>}
+            <div className="result-apt-name">{result.neighborhood} 수군수군</div>
+            <div className="result-apt-loc">동네 사람들의 이야기</div>
           </div>
         </header>
 
@@ -147,22 +141,9 @@ export default function App() {
             )}
           </div>
 
-          {result.stories.length > 0 && (
-            <div className="stories-section">
-              <div className="section-label">블로그 · 카페 원문 보기</div>
-              {result.stories.map((s, i) => (
-                <a key={i} className="story-item" href={s.link} target="_blank" rel="noopener noreferrer">
-                  <div className="story-title">{s.title}</div>
-                  {s.description && <div className="story-desc">{s.description}</div>}
-                  <div className="story-meta">{s.source}{s.date ? ` · ${s.date}` : ''}</div>
-                </a>
-              ))}
-            </div>
-          )}
-
           <p className="disclaimer">
             위 내용은 AI가 인터넷 글을 자동 수집·요약한 결과예요.{'\n'}
-            실제 사실과 다를 수 있으며 투자·거래 참고 자료로 활용할 수 없어요.
+            실제 사실과 다를 수 있으며 생활 참고용으로만 활용해주세요.
           </p>
         </div>
       </div>
@@ -199,13 +180,17 @@ export default function App() {
 
         {showSugg && suggestions.length > 0 && (
           <ul className="sugg-list">
-            {suggestions.map(apt => (
-              <li key={apt.kaptCode} className="sugg-item"
-                onPointerDown={e => { e.preventDefault(); setQuery(apt.kaptName); handleSearch(apt.kaptName) }}>
-                <span className="sugg-name">{apt.kaptName}</span>
-                <span className="sugg-addr">{apt.addr?.split(' ').slice(1, 4).join(' ')}</span>
-              </li>
-            ))}
+            {suggestions.map(apt => {
+              const dong = apt.addr?.split(' ').find(p => p.endsWith('동') || p.endsWith('읍') || p.endsWith('면')) || ''
+              return (
+                <li key={apt.kaptCode} className="sugg-item"
+                  onPointerDown={e => { e.preventDefault(); setQuery(apt.kaptName); handleSearch(apt.kaptName, dong) }}>
+                  <span className="sugg-name">{apt.kaptName}</span>
+                  {apt.kaptdaCnt && <span className="sugg-cnt">{apt.kaptdaCnt.toLocaleString()}세대</span>}
+                  <span className="sugg-addr">{apt.addr?.split(' ').slice(1, 4).join(' ')}</span>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
