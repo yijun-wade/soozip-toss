@@ -621,9 +621,30 @@ function SajuResult({ result, onBack }) {
   )
 }
 
+// ── 딥링크 → 초기 화면 매핑 ─────────────────────────────
+// 토스 푸시·앱인토스 광고에서 intoss://sugunsugun/<screenName>으로 진입 시
+// pathname / hash / query 어느 형식이든 대응
+const SCREEN_MAP = {
+  'saju':         'saju-input',
+  'saju-input':   'saju-input',
+  'home':         'home',
+  '':             'home',
+}
+function getInitialView() {
+  try {
+    const path = (window.location.pathname || '').replace(/^\/+|\/+$/g, '').toLowerCase()
+    if (SCREEN_MAP[path] !== undefined) return SCREEN_MAP[path]
+    const hash = (window.location.hash || '').replace(/^#\/?/, '').toLowerCase()
+    if (SCREEN_MAP[hash] !== undefined) return SCREEN_MAP[hash]
+    const screen = new URLSearchParams(window.location.search).get('screen')?.toLowerCase()
+    if (screen && SCREEN_MAP[screen] !== undefined) return SCREEN_MAP[screen]
+  } catch {}
+  return 'home'
+}
+
 // ── 메인 앱 ─────────────────────────────────────────────
 export default function App() {
-  const [view, setView]           = useState('home') // home | saju-input | saju-preview | saju-result
+  const [view, setView]           = useState(getInitialView) // home | saju-input | saju-preview | saju-result
   const [query, setQuery]         = useState('')
   const [suggestions, setSugg]    = useState([])
   const [result, setResult]       = useState(null)
