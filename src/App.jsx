@@ -18,7 +18,7 @@ function getYearGan(year) { return CHEONGAN[(year - 4 + 4000) % 10] }
 function getYearJi(year)  { return JIJI[(year - 4 + 4000) % 12] }
 
 // 타임아웃 포함 fetch
-async function fetchWithTimeout(url, ms = 45000) {
+async function fetchWithTimeout(url, ms = 55000) {
   const ctrl = new AbortController()
   const tid  = setTimeout(() => ctrl.abort(), ms)
   try {
@@ -27,7 +27,7 @@ async function fetchWithTimeout(url, ms = 45000) {
     return r.json()
   } catch (e) {
     clearTimeout(tid)
-    if (e.name === 'AbortError') throw new Error('분석 시간이 초과됐어요. 다시 시도해주세요.')
+    if (e.name === 'AbortError') throw new Error('서버가 잠시 바빠요. 잠시 후 다시 시도해주세요.')
     throw e
   }
 }
@@ -214,16 +214,16 @@ function SajuPreview({ birthData, onBack, onResult }) {
 
   const DUMMY_REGIONS = ['마포구', '용산구', '성동구']
 
-  // 카운트다운 타이머 — 0 도달 시 자동 에러 처리
+  // 카운트다운 타이머 — fetchWithTimeout(55s)가 먼저 에러 처리하도록 58초로 여유 둠
   useEffect(() => {
     if (!paying) { setCountdown(null); return }
-    setCountdown(42)
+    setCountdown(58)
     const iv = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(iv)
           setPaying(false)
-          setError('응답이 너무 늦어요. 다시 시도해주세요.')
+          setError('서버가 잠시 바빠요. 잠시 후 다시 시도해주세요.')
           return null
         }
         return prev - 1
