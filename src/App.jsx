@@ -133,7 +133,7 @@ function SajuInput({ onBack, onPreview }) {
       {/* 훅킹 포인트: 샘플 미리보기 */}
       <div style={{ marginTop: 28, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginBottom: 14, textAlign: 'center', letterSpacing: '0.05em' }}>
-          결제 후 이런 결과가 나와요 (샘플)
+          이런 결과가 나와요 (샘플)
         </div>
 
         {/* 샘플 카드 */}
@@ -201,11 +201,12 @@ function SajuInput({ onBack, onPreview }) {
   )
 }
 
-// ── 사주 미리보기 (결제 전) ──────────────────────────────
+// ── 사주 미리보기 (분석 시작 전) ──────────────────────────────
 function SajuPreview({ birthData, onBack, onResult }) {
   const [paying, setPaying]   = useState(false)
   const [error, setError]     = useState(null)
   const [countdown, setCountdown] = useState(null)
+  const adReadyRef = useRef(false)
 
   const { year, month, day, si, gender, yearGan } = birthData
   const ohaeng  = OHAENG_KO_MAP[yearGan] || ''
@@ -213,6 +214,15 @@ function SajuPreview({ birthData, onBack, onResult }) {
   const yearJi  = getYearJi(Number(year))
 
   const DUMMY_REGIONS = ['마포구', '용산구', '성동구']
+
+  // 진입 시 전면광고 미리 로드 (분석 시작 시 즉시 표시 가능하도록)
+  useEffect(() => {
+    loadFullScreenAd({
+      options: { adGroupId: AD_GROUP_ID },
+      onEvent: (d) => { if (d.type === 'loaded') adReadyRef.current = true },
+      onError: () => {},
+    })
+  }, [])
 
   // 카운트다운 타이머 — fetchWithTimeout(55s)가 먼저 에러 처리하도록 58초로 여유 둠
   useEffect(() => {
@@ -247,6 +257,11 @@ function SajuPreview({ birthData, onBack, onResult }) {
       || h.includes('sugunsugun')
 
     if (isDev) {
+      // 분석 시작과 동시에 전면광고 노출 — 대기 시간을 광고로 채움
+      if (adReadyRef.current) {
+        showFullScreenAd({ options: { adGroupId: AD_GROUP_ID }, onEvent: () => {}, onError: () => {} })
+        adReadyRef.current = false
+      }
       try {
         const res = await fetchWithTimeout(
           `${API}/api/saju?year=${year}&month=${month}&day=${day}&si=${si || ''}&gender=${gender}`
@@ -324,7 +339,7 @@ function SajuPreview({ birthData, onBack, onResult }) {
           ))}
         </div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 10 }}>
-          월·일·시주는 결제 후 전체 분석에서 확인돼요
+          월·일·시주는 전체 분석에서 확인돼요
         </div>
       </div>
 
@@ -340,7 +355,7 @@ function SajuPreview({ birthData, onBack, onResult }) {
         </div>
         <div className="saju-blur-overlay">
           <div className="saju-blur-lock">🔒</div>
-          <div className="saju-blur-msg">결제 후 확인할 수 있어요</div>
+          <div className="saju-blur-msg">분석하면 확인할 수 있어요</div>
         </div>
       </div>
 
@@ -382,10 +397,10 @@ function SajuPreview({ birthData, onBack, onResult }) {
       <button className="saju-pay-btn" onClick={handlePay} disabled={paying}>
         {paying
           ? `분석 중... (${countdown ?? ''}초)`
-          : '궁합 지역 전체 보기 · 550원'}
+          : '광고 보고 무료로 분석받기'}
       </button>
       <div className="saju-pay-note">
-        추천 지역 Top 3 · 용신 해석 · 궁합 아파트 포함
+        광고 시청 후 추천 지역 Top 3 · 용신 해석 · 궁합 아파트 결과 제공
       </div>
     </div>
   )
@@ -817,7 +832,7 @@ export default function App() {
         <span className="saju-banner-icon">🔮</span>
         <div className="saju-banner-text">
           <div className="saju-banner-title">사주로 찾는 내 지역 궁합</div>
-          <div className="saju-banner-sub">생년월일 입력하면 맞는 서울 동네 알려드려요 · 550원</div>
+          <div className="saju-banner-sub">생년월일 입력하면 맞는 서울 동네 알려드려요</div>
         </div>
         <span className="saju-banner-arrow">›</span>
       </button>

@@ -1,12 +1,13 @@
 {
   "name": "soozip-toss",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.2",
   "type": "module",
   "scripts": {
     "dev": "granite dev",
     "build": "ait build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "release": "ait build && node -e \"const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const d=new Date();const date=d.getFullYear().toString().slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');const name='releases/sugunsugun-v'+pkg.version+'-'+date+'.ait';fs.copyFileSync('sugunsugun.ait',name);console.log('릴리즈 저장:', name);\""
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^2.0.5",
