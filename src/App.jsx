@@ -438,8 +438,28 @@ function SajuResult({ result, onBack }) {
       <div className="saju-result-hero">
         <div className="saju-result-ilgan">{result.ilgan}</div>
         <div className="saju-result-yong">{s.sinkang || ''} · 용신 {s.yongshin || result.yongshin}</div>
-        <div className="saju-result-summary">{result.summary}</div>
+        {(result.plainSummary || result.summary) && (
+          <div className="saju-result-summary">{result.plainSummary || result.summary}</div>
+        )}
+        {result.plainSummary && result.summary && (
+          <div className="saju-result-summary-tech">{result.summary}</div>
+        )}
       </div>
+
+      {/* 사주 용어 설명 — 처음 본 사람을 위한 가이드 */}
+      <details className="saju-glossary">
+        <summary>ℹ️ 사주 용어가 어렵나요?</summary>
+        <dl>
+          <dt>일간 (日干)</dt>
+          <dd>당신 사주의 핵심 글자. 타고난 본질적 성향을 나타내요.</dd>
+          <dt>신강·신약</dt>
+          <dd>기운이 센 편(신강) / 약한 편(신약). 강하면 발산, 약하면 보충이 필요해요.</dd>
+          <dt>용신 (用神)</dt>
+          <dd>당신에게 가장 좋은 기운. 균형을 맞춰주는 오행이에요.</dd>
+          <dt>오행 (五行)</dt>
+          <dd>木(나무)·火(불)·土(흙)·金(쇠)·水(물). 우주를 구성하는 5가지 기운이에요.</dd>
+        </dl>
+      </details>
 
       <div style={{ padding: '16px 20px 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
         <button className="back-btn" style={{ padding: 0 }} onClick={onBack}>←</button>

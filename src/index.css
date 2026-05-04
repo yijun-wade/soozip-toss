@@ -360,3 +360,267 @@ html, body, #root {
   cursor: pointer;
 }
 .notice-btn:active { opacity: 0.85; }
+
+/* ── 사주 지역 궁합 ── */
+.saju-banner {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+}
+.saju-banner:active { opacity: 0.88; }
+.saju-banner-icon { font-size: 32px; line-height: 1; flex-shrink: 0; }
+.saju-banner-text { flex: 1; }
+.saju-banner-title { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 3px; }
+.saju-banner-sub   { font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.5; }
+.saju-banner-arrow { font-size: 18px; color: rgba(255,255,255,0.6); flex-shrink: 0; }
+
+/* 사주 입력 화면 */
+.saju-screen {
+  padding: 0 20px 40px;
+}
+.saju-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.saju-header-title { font-size: 18px; font-weight: 800; color: var(--text); }
+
+.saju-form-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+.saju-form-group { margin-bottom: 20px; }
+.saju-row { display: flex; gap: 8px; }
+.saju-select {
+  flex: 1;
+  height: 48px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--card);
+  padding: 0 12px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.saju-select:focus { border-color: var(--blue); }
+
+.gender-row { display: flex; gap: 8px; }
+.gender-btn {
+  flex: 1;
+  height: 48px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.gender-btn.active {
+  border-color: var(--blue);
+  background: var(--blue-lt);
+  color: var(--blue);
+}
+
+.saju-cta-btn {
+  width: 100%;
+  height: 56px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.saju-cta-btn:active { opacity: 0.85; }
+.saju-cta-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 사주 미리보기 */
+.saju-preview-card {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  border-radius: 20px;
+  padding: 28px 24px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.saju-ilgan-label { font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
+.saju-ilgan { font-size: 48px; font-weight: 900; color: #fff; letter-spacing: -1px; }
+.saju-ilgan-sub { font-size: 14px; color: rgba(255,255,255,0.8); margin-top: 8px; }
+
+.saju-blur-section {
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+}
+.saju-blur-title { font-size: 13px; font-weight: 700; color: var(--text2); margin-bottom: 12px; }
+.saju-blur-rows { filter: blur(5px); pointer-events: none; }
+.saju-blur-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.saju-blur-row:last-child { border-bottom: none; }
+.saju-blur-gu { font-size: 16px; font-weight: 700; color: var(--text); }
+.saju-blur-score { font-size: 14px; font-weight: 700; color: var(--blue); }
+.saju-blur-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+}
+.saju-blur-lock { font-size: 28px; }
+.saju-blur-msg { font-size: 13px; font-weight: 700; color: var(--text); }
+
+.saju-pay-btn {
+  width: 100%;
+  height: 60px;
+  background: #f97316;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.saju-pay-btn:active { opacity: 0.88; }
+.saju-pay-note { font-size: 11px; color: var(--text2); text-align: center; margin-top: 10px; }
+
+/* 사주 결과 화면 */
+.saju-result-hero {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  padding: 32px 24px 28px;
+  text-align: center;
+}
+.saju-result-ilgan { font-size: 44px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.saju-result-yong { font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.6; }
+.saju-result-summary {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 14px;
+  line-height: 1.65;
+  background: rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.saju-result-summary-tech {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  margin-top: 8px;
+  line-height: 1.6;
+  font-style: italic;
+}
+.saju-glossary {
+  margin: 16px 16px 0;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.saju-glossary summary {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.saju-glossary summary::-webkit-details-marker { display: none; }
+.saju-glossary[open] summary { margin-bottom: 10px; }
+.saju-glossary dl { margin: 0; }
+.saju-glossary dt { font-size: 13px; font-weight: 800; color: var(--text); margin-top: 8px; }
+.saju-glossary dt:first-of-type { margin-top: 0; }
+.saju-glossary dd { font-size: 12px; color: var(--text2); margin: 3px 0 0; line-height: 1.6; }
+
+.saju-region-list { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.saju-region-card {
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.saju-region-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  background: var(--bg);
+}
+.saju-region-name { font-size: 17px; font-weight: 800; color: var(--text); }
+.saju-region-score {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--blue);
+  background: var(--blue-lt);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+.saju-region-reason {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.65;
+  padding: 0 18px 14px;
+  background: var(--bg);
+}
+.saju-apt-list { padding: 12px 18px; display: flex; flex-direction: column; gap: 10px; }
+.saju-apt-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.saju-apt-item:last-child { border-bottom: none; }
+.saju-apt-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.saju-apt-info { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.saju-apt-price { font-size: 15px; font-weight: 800; color: var(--blue); white-space: nowrap; }
+
+.saju-suzip-btn {
+  margin: 4px 20px 32px;
+  display: block;
+  height: 52px;
+  background: var(--blue-lt);
+  color: var(--blue);
+  border: 1.5px solid #BFDBFE;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  width: calc(100% - 40px);
+}
+.saju-suzip-btn:active { opacity: 0.8; }
