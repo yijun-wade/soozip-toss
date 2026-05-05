@@ -202,11 +202,25 @@ function SajuInput({ onBack, onPreview }) {
 }
 
 // ── 사주 미리보기 (분석 시작 전) ──────────────────────────────
+//
+// UX 흐름 (v0.3.6~):
+//   [결과보기] → 광고 + API 동시 시작 (화면은 미리보기 그대로)
+//     → 광고 닫힘 시점에:
+//        · API 결과 도착됨 → 결과 화면 직행
+//        · API 진행 중     → 카운트다운 60s (그 동안 도착하면 결과)
+//   광고 fail/미충전 → 즉시 카운트다운 (현재 fallback 유지)
+//
 function SajuPreview({ birthData, onBack, onResult }) {
-  const [paying, setPaying]   = useState(false)
+  // phase: 'idle' | 'ad_showing' | 'awaiting_api'
+  const [phase, setPhase] = useState('idle')
   const [error, setError]     = useState(null)
   const [countdown, setCountdown] = useState(null)
   const adReadyRef = useRef(false)
+  // 광고 닫히기 전 도착한 API 결과 임시 보관 (광고 닫는 시점에 settle)
+  const apiResultRef = useRef(null)
+  const apiErrorRef  = useRef(null)
+  const adClosedRef  = useRef(false)
+  const adFallbackTimerRef = useRef(null)
 
   const { year, month, day, si, gender, yearGan } = birthData
   const ohaeng  = OHAENG_KO_MAP[yearGan] || ''
@@ -224,15 +238,15 @@ function SajuPreview({ birthData, onBack, onResult }) {
     })
   }, [])
 
-  // 카운트다운 타이머 — fetchWithTimeout(60s)와 동기화. Vercel maxDuration 60s 한도와 일치
+  // 카운트다운 — phase가 'awaiting_api'일 때만 동작 (광고 닫힌 후 시작)
   useEffect(() => {
-    if (!paying) { setCountdown(null); return }
+    if (phase !== 'awaiting_api') { setCountdown(null); return }
     setCountdown(60)
     const iv = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(iv)
-          setPaying(false)
+          setPhase('idle')
           setError('서버가 잠시 바빠요. 잠시 후 다시 시도해주세요.')
           return null
         }
@@ -240,11 +254,39 @@ function SajuPreview({ birthData, onBack, onResult }) {
       })
     }, 1000)
     return () => clearInterval(iv)
-  }, [paying])
+  }, [phase])
+
+  // API 결과·에러를 화면 전환으로 settle
+  function settleApi() {
+    if (apiErrorRef.current) {
+      setError(apiErrorRef.current)
+      setPhase('idle')
+    } else if (apiResultRef.current) {
+      onResult(apiResultRef.current)
+    }
+  }
+
+  // 광고 닫힘 시점 처리 (close 이벤트 / 광고 표시 fail / fallback timer 모두 여기로)
+  function handleAdClose() {
+    if (adClosedRef.current) return
+    adClosedRef.current = true
+    if (adFallbackTimerRef.current) {
+      clearTimeout(adFallbackTimerRef.current)
+      adFallbackTimerRef.current = null
+    }
+    // API 결과가 광고 닫기 전 도착했으면 즉시 settle, 아니면 카운트다운 phase로
+    if (apiResultRef.current || apiErrorRef.current) {
+      settleApi()
+    } else {
+      setPhase('awaiting_api')
+    }
+  }
 
   async function handlePay() {
-    setPaying(true)
     setError(null)
+    apiResultRef.current = null
+    apiErrorRef.current = null
+    adClosedRef.current = false
 
     // IAP 미지원 환경 모두 bypass — 토스 앱 webview 포함
     // .ait 로컬 번들은 hostname이 '' 또는 localhost일 수 있음
@@ -257,26 +299,52 @@ function SajuPreview({ birthData, onBack, onResult }) {
       || h.includes('sugunsugun')
 
     if (isDev) {
-      // 분석 시작과 동시에 전면광고 노출 — 대기 시간을 광고로 채움
+      // 1. 광고 + API 동시 시작
       if (adReadyRef.current) {
-        showFullScreenAd({ options: { adGroupId: AD_GROUP_ID }, onEvent: () => {}, onError: () => {} })
         adReadyRef.current = false
+        setPhase('ad_showing')
+        showFullScreenAd({
+          options: { adGroupId: AD_GROUP_ID },
+          onEvent: (d) => {
+            // 광고 닫힘 이벤트 catch-all (SDK 버전마다 type 다를 가능성 대비)
+            const t = d?.type
+            if (t === 'closed' || t === 'dismissed' || t === 'finished' || t === 'completed') {
+              handleAdClose()
+            }
+          },
+          onError: () => { handleAdClose() },
+        })
+        // 안전 fallback — close 이벤트 누락 대비 (광고 보통 최대 30s 내외)
+        adFallbackTimerRef.current = setTimeout(() => { handleAdClose() }, 35000)
+      } else {
+        // 광고 미충전/fail → 즉시 카운트다운으로
+        adClosedRef.current = true
+        setPhase('awaiting_api')
       }
+
+      // 2. API 호출 (광고와 병행)
       try {
         const res = await fetchWithTimeout(
           `${API}/api/saju?year=${year}&month=${month}&day=${day}&si=${si || ''}&gender=${gender}`
         )
-        if (res.error) { setError(res.error); return }
-        onResult(res)
+        if (res.error) {
+          apiErrorRef.current = res.error
+        } else {
+          apiResultRef.current = res
+        }
       } catch (e) {
-        setError(e.message || '분석 중 오류가 발생했어요. 다시 시도해주세요.')
-      } finally {
-        setPaying(false)
+        apiErrorRef.current = e.message || '분석 중 오류가 발생했어요. 다시 시도해주세요.'
+      }
+
+      // 3. 광고 이미 닫혔으면 즉시 settle, 아니면 광고 close 콜백이 settle
+      if (adClosedRef.current) {
+        settleApi()
       }
       return
     }
 
-    // 토스 앱 환경: IAP 결제 후 API 호출
+    // 토스 앱 환경: IAP 결제 후 API 호출 (현재 isDev=true로 항상 우회되어 미사용)
+    setPhase('awaiting_api')
     IAP.createOneTimePurchaseOrder({
       sku: SAJU_SKU,
       processProductGrant: async ({ orderId }) => {
@@ -286,20 +354,20 @@ function SajuPreview({ birthData, onBack, onResult }) {
           )
           if (res.error) {
             setError('분석 중 오류가 발생했어요. 다시 시도해주세요.')
+            setPhase('idle')
             return false
           }
           onResult(res)
           return true
         } catch (e) {
           setError(e.message || '오류가 발생했어요. 다시 시도해주세요.')
+          setPhase('idle')
           return false
-        } finally {
-          setPaying(false)
         }
       },
       onError: () => {
         setError('결제 중 오류가 발생했어요. 다시 시도해주세요.')
-        setPaying(false)
+        setPhase('idle')
       },
     })
   }
@@ -371,7 +439,7 @@ function SajuPreview({ birthData, onBack, onResult }) {
         </div>
       )}
 
-      {paying && countdown !== null && (
+      {phase === 'awaiting_api' && countdown !== null && (
         <div style={{ textAlign: 'center', marginBottom: 12 }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 12,
@@ -394,8 +462,10 @@ function SajuPreview({ birthData, onBack, onResult }) {
         </div>
       )}
 
-      <button className="saju-pay-btn" onClick={handlePay} disabled={paying}>
-        {paying
+      <button className="saju-pay-btn" onClick={handlePay} disabled={phase !== 'idle'}>
+        {phase === 'ad_showing'
+          ? '광고 시청 중...'
+          : phase === 'awaiting_api'
           ? `분석 중... (${countdown ?? ''}초)`
           : '광고 보고 무료로 분석받기'}
       </button>
