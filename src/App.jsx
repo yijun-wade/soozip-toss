@@ -18,7 +18,7 @@ function getYearGan(year) { return CHEONGAN[(year - 4 + 4000) % 10] }
 function getYearJi(year)  { return JIJI[(year - 4 + 4000) % 12] }
 
 // 타임아웃 포함 fetch
-async function fetchWithTimeout(url, ms = 55000) {
+async function fetchWithTimeout(url, ms = 60000) {
   const ctrl = new AbortController()
   const tid  = setTimeout(() => ctrl.abort(), ms)
   try {
@@ -224,10 +224,10 @@ function SajuPreview({ birthData, onBack, onResult }) {
     })
   }, [])
 
-  // 카운트다운 타이머 — fetchWithTimeout(55s)가 먼저 에러 처리하도록 58초로 여유 둠
+  // 카운트다운 타이머 — fetchWithTimeout(60s)와 동기화. Vercel maxDuration 60s 한도와 일치
   useEffect(() => {
     if (!paying) { setCountdown(null); return }
-    setCountdown(58)
+    setCountdown(60)
     const iv = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
